@@ -1,0 +1,734 @@
+{
+    "name": "Yanca Albuquerque",
+    "id": "/providers/Microsoft.Flow/flows/",
+    "type": "Microsoft.Flow/flows",
+    "properties": {
+        "apiId": "/providers/Microsoft.PowerApps/apis/shared_logicflows",
+        "displayName": "Fluxo - Coleta dados do email e criar item",
+        "definition": {
+            "metadata": {
+                "workflowEntityId": null,
+                "processAdvisorMetadata": null,
+                "flowChargedByPaygo": null,
+                "flowclientsuspensionreason": "None",
+                "flowclientsuspensiontime": null,
+                "flowclientsuspensionreasondetails": null,
+                "creator": {
+                    "id": "",
+                    "type": "User",
+                    "tenantId": ""
+                },
+                "provisioningMethod": "FromDefinition",
+                "failureAlertSubscription": true,
+                "clientLastModifiedTime": "",
+                "connectionKeySavedTimeKey": "",
+                "creationSource": null,
+                "modifiedSources": "Portal"
+            },
+            "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+            "contentVersion": "undefined",
+            "parameters": {
+                "$authentication": {
+                    "defaultValue": {},
+                    "type": "SecureObject"
+                },
+                "$connections": {
+                    "defaultValue": {},
+                    "type": "Object"
+                }
+            },
+            "triggers": {
+                "Recurrence": {
+                    "recurrence": {
+                        "frequency": "Day",
+                        "interval": 1,
+                        "startTime": "2025-01-01T00:00:00Z"
+                    },
+                    "metadata": {
+                        "operationMetadataId": ""
+                    },
+                    "type": "Recurrence"
+                }
+            },
+            "actions": {
+                "Inicializar_variável_todosEmails": {
+                    "runAfter": {
+                        "Inicializar_variável_pastasVerificar": [
+                            "Succeeded"
+                        ]
+                    },
+                    "metadata": {
+                        "operationMetadataId": ""
+                    },
+                    "type": "InitializeVariable",
+                    "inputs": {
+                        "variables": [
+                            {
+                                "name": "todosEmails",
+                                "type": "array",
+                                "value": []
+                            }
+                        ]
+                    }
+                },
+                "Inicializar_variável_categoriasUnicas": {
+                    "runAfter": {
+                        "Inicializar_variável_todosEmails": [
+                            "Succeeded"
+                        ]
+                    },
+                    "metadata": {
+                        "operationMetadataId": ""
+                    },
+                    "type": "InitializeVariable",
+                    "inputs": {
+                        "variables": [
+                            {
+                                "name": "categoriasUnicas",
+                                "type": "array",
+                                "value": []
+                            }
+                        ]
+                    }
+                },
+                "Inicializar_variável_conversationIdsProcessadas": {
+                    "runAfter": {
+                        "Aplicar_a_cada_3": [
+                            "Succeeded"
+                        ]
+                    },
+                    "metadata": {
+                        "operationMetadataId": ""
+                    },
+                    "type": "InitializeVariable",
+                    "inputs": {
+                        "variables": [
+                            {
+                                "name": "conversationIdsProcessadas",
+                                "type": "array",
+                                "value": []
+                            }
+                        ]
+                    }
+                },
+                "Aplicar_a_cada": {
+                    "foreach": "@variables('todosEmails')",
+                    "actions": {
+                        "Acrescentar_à_variável_de_matriz_todosEmails": {
+                            "metadata": {
+                                "operationMetadataId": ""
+                            },
+                            "type": "AppendToArrayVariable",
+                            "inputs": {
+                                "name": "conversationIdsProcessadas",
+                                "value": "@items('Aplicar_a_cada')?['conversationId']"
+                            }
+                        },
+                        "Matriz_do_filtro": {
+                            "runAfter": {
+                                "Acrescentar_à_variável_de_matriz_todosEmails": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "metadata": {
+                                "operationMetadataId": ""
+                            },
+                            "type": "Query",
+                            "inputs": {
+                                "from": "@variables('todosEmails')",
+                                "where": "@equals(item()?['conversationId'],items('Aplicar_a_cada')?['conversationId'])"
+                            }
+                        },
+                        "Compor_2": {
+                            "runAfter": {
+                                "Matriz_do_filtro_References": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "metadata": {
+                                "operationMetadataId": ""
+                            },
+                            "type": "Compose",
+                            "inputs": "@if(\r\n   empty(body('Matriz_do_filtro')),\r\n   null,\r\n   first(reverse(sort(body('Matriz_do_filtro'), 'receivedDateTime')))\r\n)"
+                        },
+                        "Compor_categorias": {
+                            "runAfter": {
+                                "Aplicar_a_cada_1": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "metadata": {
+                                "operationMetadataId": ""
+                            },
+                            "type": "Compose",
+                            "inputs": "@if(\r\n   \t\tempty(variables('categoriasUnicas')),\r\n   \t\t'Sem categoria',\r\n   \tjoin(\r\n   \t\treverse(union(variables('categoriasUnicas'), variables('categoriasUnicas'))),\r\n      \t\t', '\r\n   \t\t)\r\n\t)"
+                        },
+                        "Criar_item": {
+                            "runAfter": {
+                                "Condição_1": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "metadata": {
+                                "operationMetadataId": ""
+                            },
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                                "parameters": {
+                                    "dataset": "https://corp-my.sharepoint.com/personal/",
+                                    "table": "",
+                                    "item/Title": "@if(empty(body('Listar_linhas_presentes_em_uma_tabela')?['value']), 'Não Encontrado', first(body('Listar_linhas_presentes_em_uma_tabela')?['value'])?['Empresa'])",
+                                    "item/DatadeRecebimento": "@items('Aplicar_a_cada')?['receivedDateTime']",
+                                    "item/CxdeOrigem": "@outputs('Compor_Cx_de_Origem')?[items('Aplicar_a_cada')?['pastaOrigem']]",
+                                    "item/Equipe": "@if(empty(body('Listar_linhas_presentes_em_uma_tabela')?['value']), 'Não Encontrado', first(body('Listar_linhas_presentes_em_uma_tabela')?['value'])?['Equipe'])",
+                                    "item/Solicitadopor": "@items('Aplicar_a_cada')?['from']?['emailAddress']?['name']",
+                                    "item/E_x002d_mail": "@items('Aplicar_a_cada')?['from']?['emailAddress']?['address']",
+                                    "item/Para": "@join(body('Selecionar_Para'), '; ')",
+                                    "item/CC": "@join(body('Selecionar_CC'), '; ')",
+                                    "item/Tipoemail": "@variables('tipoDeEmail')",
+                                    "item/Assunto": "@items('Aplicar_a_cada')?['subject']",
+                                    "item/Corpodoemail": "@items('Aplicar_a_cada')?['bodyPreview']",
+                                    "item/Resumo": "@if(greater(length(coalesce(outputs('Gpt_resumo')?['body/responsev2/predictionOutput/text'], '')), 255), substring(coalesce(outputs('Gpt_resumo')?['body/responsev2/predictionOutput/text'], ''), 0, 255), coalesce(outputs('Gpt_resumo')?['body/responsev2/predictionOutput/text'], ''))",
+                                    "item/Palavras_x002d_chave": "@if(greater(length(coalesce(outputs('Gpt_palavraChave')?['body/responsev2/predictionOutput/text'], '')), 255), substring(coalesce(outputs('Gpt_palavraChave')?['body/responsev2/predictionOutput/text'], ''), 0, 255), coalesce(outputs('Gpt_palavraChave')?['body/responsev2/predictionOutput/text'], ''))",
+                                    "item/Status_x0028_Tag_x0029_": "@outputs('Compor_categorias')",
+                                    "item/Intera_x00e7__x00f5_es": "@length(body('Matriz_do_filtro'))",
+                                    "item/TipodeRemetente/Value": "@if(empty(body('Listar_linhas_presentes_em_uma_tabela')?['value']), 'Externo', first(body('Listar_linhas_presentes_em_uma_tabela')?['value'])?['Tipo'])",
+                                    "item/IDdaMensagem": "@coalesce(first(body('Matriz_do_filtro_ID'))?['value'], '')",
+                                    "item/Thread": "@coalesce(first(body('Matriz_do_filtro_Thread'))?['value'], '')",
+                                    "item/References": "@coalesce(first(body('Matriz_do_filtro_References'))?['value'], '')",
+                                    "item/IDdaConversa": "@items('Aplicar_a_cada')?['conversationId']"
+                                },
+                                "host": {
+                                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                                    "connectionName": "shared_sharepointonline",
+                                    "operationId": "PostItem"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                            }
+                        },
+                        "Gpt_palavraChave": {
+                            "runAfter": {
+                                "Gpt_resumo": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "metadata": {
+                                "flowSystemMetadata": {
+                                    "portalOperationId": "aibuilderpredict_customprompt",
+                                    "portalOperationGroup": "aibuilder",
+                                    "portalOperationApiDisplayNameOverride": "AI Builder",
+                                    "portalOperationIconOverride": "https://content.powerapps.com/resource/makerx/static/pauto/images/designeroperations/aiBuilderNew.51dbdb6b.png",
+                                    "portalOperationBrandColorOverride": "#0A76C4",
+                                    "portalOperationApiTierOverride": "Standard"
+                                },
+                                "operationMetadataId": ""
+                            },
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                                "parameters": {
+                                    "recordId": "",
+                                    "item/requestv2/inputText": "Resuma este e-mail em até 3 palavras-chave curtas, separadas por vírgula e com a primeira letra maiúscula, em português. \n\n@{coalesce(items('Aplicar_a_cada')?['bodyPreview'], '')}"
+                                },
+                                "host": {
+                                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                                    "connectionName": "shared_commondataserviceforapps",
+                                    "operationId": "aibuilderpredict_customprompt"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                            }
+                        },
+                        "Matriz_do_filtro_ID": {
+                            "runAfter": {
+                                "Matriz_do_filtro_Thread": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Query",
+                            "inputs": {
+                                "from": "@coalesce(items('Aplicar_a_cada')?['internetMessageHeaders'], json('[]'))",
+                                "where": "@equals(item()?['name'],'Message-ID')"
+                            }
+                        },
+                        "Matriz_do_filtro_References": {
+                            "runAfter": {
+                                "Matriz_do_filtro_ID": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Query",
+                            "inputs": {
+                                "from": "@coalesce(items('Aplicar_a_cada')?['internetMessageHeaders'], json('[]'))",
+                                "where": "@equals(item()?['name'],'References')"
+                            }
+                        },
+                        "Selecionar_Para": {
+                            "runAfter": {
+                                "Compor_categorias": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Select",
+                            "inputs": {
+                                "from": "@items('Aplicar_a_cada')?['toRecipients']",
+                                "select": "@item()?['emailAddress']?['address']"
+                            }
+                        },
+                        "Selecionar_CC": {
+                            "runAfter": {
+                                "Selecionar_Para": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Select",
+                            "inputs": {
+                                "from": "@items('Aplicar_a_cada')?['ccRecipients']",
+                                "select": "@item()?['emailAddress']?['address']"
+                            }
+                        },
+                        "Condição_1": {
+                            "actions": {
+                                "Definir_variável_Resposta": {
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "tipoDeEmail",
+                                        "value": "Resposta"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Gpt_palavraChave": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "else": {
+                                "actions": {
+                                    "Definir_variável_Novo": {
+                                        "type": "SetVariable",
+                                        "inputs": {
+                                            "name": "tipoDeEmail",
+                                            "value": "Novo"
+                                        }
+                                    }
+                                }
+                            },
+                            "expression": {
+                                "or": [
+                                    {
+                                        "startsWith": [
+                                            "@trim(toLower(items('Aplicar_a_cada')?['subject']))",
+                                            "re:"
+                                        ]
+                                    },
+                                    {
+                                        "startsWith": [
+                                            "@trim(toLower(items('Aplicar_a_cada')?['subject']))",
+                                            "res:"
+                                        ]
+                                    },
+                                    {
+                                        "startsWith": [
+                                            "@trim(toLower(items('Aplicar_a_cada')?['subject']))",
+                                            "fw:"
+                                        ]
+                                    },
+                                    {
+                                        "startsWith": [
+                                            "@trim(toLower(items('Aplicar_a_cada')?['subject']))",
+                                            "fwd:"
+                                        ]
+                                    },
+                                    {
+                                        "startsWith": [
+                                            "@trim(toLower(items('Aplicar_a_cada')?['subject']))",
+                                            "enc:"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "type": "If"
+                        },
+                        "Matriz_do_filtro_Thread": {
+                            "runAfter": {
+                                "Matriz_do_filtro": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Query",
+                            "inputs": {
+                                "from": "@coalesce(items('Aplicar_a_cada')?['internetMessageHeaders'], json('[]'))",
+                                "where": "@equals(toLower(trim(item()?['name'])),'thread-index')"
+                            }
+                        },
+                        "Listar_linhas_presentes_em_uma_tabela": {
+                            "runAfter": {
+                                "Compor_2": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "metadata": {
+                                "01": "/Lista de emails.xlsx",
+                                "tableId": "{}"
+                            },
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                                "parameters": {
+                                    "source": "https://corp-my.sharepoint.com/personal/",
+                                    "drive": "",
+                                    "file": "",
+                                    "table": "{}",
+                                    "$filter": "Email eq '@{items('Aplicar_a_cada')?['from']?['emailAddress']?['address']}'"
+                                },
+                                "host": {
+                                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
+                                    "connectionName": "shared_excelonlinebusiness-1",
+                                    "operationId": "GetItems"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                            }
+                        },
+                        "Definir_variável_tags": {
+                            "runAfter": {
+                                "Listar_linhas_presentes_em_uma_tabela": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "SetVariable",
+                            "inputs": {
+                                "name": "categoriasUnicas",
+                                "value": []
+                            }
+                        },
+                        "Aplicar_a_cada_1": {
+                            "foreach": "@body('Matriz_do_filtro')",
+                            "actions": {
+                                "Aplicar_a_cada_2": {
+                                    "foreach": "@item()?['categories']",
+                                    "actions": {
+                                        "Acrescentar_à_variável_de_matriz_tags": {
+                                            "type": "AppendToArrayVariable",
+                                            "inputs": {
+                                                "name": "categoriasUnicas",
+                                                "value": "@items('Aplicar_a_cada_2')"
+                                            }
+                                        }
+                                    },
+                                    "type": "Foreach"
+                                }
+                            },
+                            "runAfter": {
+                                "Definir_variável_tags": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Foreach"
+                        },
+                        "Gpt_resumo": {
+                            "runAfter": {
+                                "Selecionar_CC": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "metadata": {
+                                "flowSystemMetadata": {
+                                    "portalOperationId": "aibuilderpredict_customprompt",
+                                    "portalOperationGroup": "aibuilder",
+                                    "portalOperationApiDisplayNameOverride": "AI Builder",
+                                    "portalOperationIconOverride": "https://content.powerapps.com/resource/makerx/static/pauto/images/designeroperations/aiBuilderNew.51dbdb6b.png",
+                                    "portalOperationBrandColorOverride": "#0A76C4",
+                                    "portalOperationApiTierOverride": "Standard"
+                                },
+                                "operationMetadataId": ""
+                            },
+                            "type": "OpenApiConnection",
+                            "inputs": {
+                                "parameters": {
+                                    "recordId": "",
+                                    "item/requestv2/inputText": "Crie um resumo técnico de até 144 caracteres, focando-se apenas nos conceitos importantes, ignorando qualquer aviso de segurança de e-mail externo. O resultado não deve conter a palavra 'Resumo:', rótulos, aspas, ou qualquer informação pessoal confidencial como nomes, CPFs ou telefones.\n\n@{items('Aplicar_a_cada')?['bodyPreview']}"
+                                },
+                                "host": {
+                                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                                    "connectionName": "shared_commondataserviceforapps",
+                                    "operationId": "aibuilderpredict_customprompt"
+                                },
+                                "authentication": "@parameters('$authentication')"
+                            }
+                        }
+                    },
+                    "runAfter": {
+                        "Inicializar_variável_conversationIdsProcessadas": [
+                            "Succeeded"
+                        ]
+                    },
+                    "metadata": {
+                        "operationMetadataId": ""
+                    },
+                    "type": "Foreach",
+                    "runtimeConfiguration": {
+                        "concurrency": {
+                            "repetitions": 1
+                        }
+                    }
+                },
+                "Inicializar_variável_emailsDaPastaAtual": {
+                    "runAfter": {
+                        "Inicializar_variável_categoriasUnicas": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "InitializeVariable",
+                    "inputs": {
+                        "variables": [
+                            {
+                                "name": "emailsDaPastaAtual",
+                                "type": "array",
+                                "value": []
+                            }
+                        ]
+                    }
+                },
+                "Inicializar_variável_pastasVerificar": {
+                    "runAfter": {},
+                    "type": "InitializeVariable",
+                    "inputs": {
+                        "variables": [
+                            {
+                                "name": "pastasVerificar",
+                                "type": "array",
+                                "value": "@createArray('Inbox', 'sentItems', 'Archive')"
+                            }
+                        ]
+                    }
+                },
+                "Aplicar_a_cada_3": {
+                    "foreach": "@variables('pastasVerificar')",
+                    "actions": {
+                        "Fazer_até": {
+                            "actions": {
+                                "Enviar_uma_solicitação_HTTP": {
+                                    "metadata": {
+                                        "operationMetadataId": ""
+                                    },
+                                    "type": "OpenApiConnection",
+                                    "inputs": {
+                                        "parameters": {
+                                            "Uri": "@variables('urlPaginacao')",
+                                            "Method": "GET",
+                                            "ContentType": "application/json"
+                                        },
+                                        "host": {
+                                            "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365users",
+                                            "connectionName": "shared_office365users",
+                                            "operationId": "HttpRequest"
+                                        },
+                                        "authentication": "@parameters('$authentication')"
+                                    }
+                                },
+                                "Definir_variável_urlPaginacao_1": {
+                                    "runAfter": {
+                                        "Definir_variável_todosEmails": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "metadata": {
+                                        "operationMetadataId": ""
+                                    },
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "urlPaginacao",
+                                        "value": "@body('Enviar_uma_solicitação_HTTP')?['@odata.nextLink']"
+                                    }
+                                },
+                                "Selecionar_pastaOrigem": {
+                                    "runAfter": {
+                                        "Enviar_uma_solicitação_HTTP": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Select",
+                                    "inputs": {
+                                        "from": "@body('Enviar_uma_solicitação_HTTP')?['value']",
+                                        "select": "@addProperty(item(), 'pastaOrigem', items('Aplicar_a_cada_3'))"
+                                    }
+                                },
+                                "Matriz_do_filtro_Spans": {
+                                    "runAfter": {
+                                        "Selecionar_pastaOrigem": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Query",
+                                    "inputs": {
+                                        "from": "@body('Selecionar_pastaOrigem')",
+                                        "where": "@not(\r\n  or(\r\n    startsWith(toLower(trim(coalesce(item()?['subject'], ''))), 'não é possível entregar:'),\r\n    startsWith(toLower(trim(coalesce(item()?['subject'], ''))), 'automatic reply:'),\r\n    startsWith(toLower(trim(coalesce(item()?['subject'], ''))), 'resposta automática:'),\r\n    startsWith(toLower(trim(coalesce(item()?['subject'], ''))), 'aceito:'),\r\n    startsWith(toLower(trim(coalesce(item()?['subject'], ''))), 'recusado:'),\r\n    startsWith(toLower(trim(coalesce(item()?['subject'], ''))), 'resumo:'),\r\n    startsWith(toLower(trim(coalesce(item()?['subject'], ''))), 'convite')\r\n  )\r\n)"
+                                    }
+                                },
+                                "Compor": {
+                                    "runAfter": {
+                                        "Matriz_do_filtro_Spans": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "Compose",
+                                    "inputs": "@union(variables('todosEmails'), body('Matriz_do_filtro_Spans'))"
+                                },
+                                "Definir_variável_todosEmails": {
+                                    "runAfter": {
+                                        "Compor": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "SetVariable",
+                                    "inputs": {
+                                        "name": "todosEmails",
+                                        "value": "@outputs('Compor')"
+                                    }
+                                }
+                            },
+                            "runAfter": {
+                                "Definir_variável_urlPaginacao": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "expression": "@equals(empty(variables('urlPaginacao')),true)",
+                            "limit": {
+                                "timeout": "PT12H"
+                            },
+                            "metadata": {
+                                "operationMetadataId": ""
+                            },
+                            "type": "Until"
+                        },
+                        "Definir_variável_urlPaginacao": {
+                            "type": "SetVariable",
+                            "inputs": {
+                                "name": "urlPaginacao",
+                                "value": "@concat('https://graph.microsoft.com/v1.0/users/exemplo@outlook.com/mailFolders/', items('Aplicar_a_cada_3'), '/messages?$top=500&$orderby=receivedDateTime desc&$select=conversationId,from,internetMessageId,toRecipients,ccRecipients,bodyPreview,internetMessageHeaders,subject,categories,receivedDateTime&$filter=receivedDateTime ge 2025-10-01T00:00:00Z and receivedDateTime le 2025-10-02T23:59:59Z')"
+                            }
+                        }
+                    },
+                    "runAfter": {
+                        "Compor_Cx_de_Origem": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Foreach"
+                },
+                "Compor_Cx_de_Origem": {
+                    "runAfter": {
+                        "Inicializar_variável_ordemDoEmail": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "Compose",
+                    "inputs": {
+                        "Inbox": "Caixa de Entrada",
+                        "sentItems": "Itens Enviados",
+                        "Archive": "Arquivo Morto"
+                    }
+                },
+                "Inicializar_variável_urlPaginacao": {
+                    "runAfter": {
+                        "Inicializar_variável_emailsDaPastaAtual": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "InitializeVariable",
+                    "inputs": {
+                        "variables": [
+                            {
+                                "name": "urlPaginacao",
+                                "type": "string"
+                            }
+                        ]
+                    }
+                },
+                "Inicializar_variável_messageIdsProcessados": {
+                    "runAfter": {
+                        "Inicializar_variável_urlPaginacao": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "InitializeVariable",
+                    "inputs": {
+                        "variables": [
+                            {
+                                "name": "messageIdsProcessados",
+                                "type": "array",
+                                "value": []
+                            }
+                        ]
+                    }
+                },
+                "Inicializar_variável_tipoDeEmail": {
+                    "runAfter": {
+                        "Inicializar_variável_messageIdsProcessados": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "InitializeVariable",
+                    "inputs": {
+                        "variables": [
+                            {
+                                "name": "tipoDeEmail",
+                                "type": "string"
+                            }
+                        ]
+                    }
+                },
+                "Inicializar_variável_ordemDoEmail": {
+                    "runAfter": {
+                        "Inicializar_variável_tipoDeEmail": [
+                            "Succeeded"
+                        ]
+                    },
+                    "type": "InitializeVariable",
+                    "inputs": {
+                        "variables": [
+                            {
+                                "name": "ordemDoEmail",
+                                "type": "integer",
+                                "value": 1
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "connectionReferences": {
+            "shared_sharepointonline": {
+                "connectionName": "shared-sharepointon",
+                "source": "Embedded",
+                "id": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                "tier": "NotSpecified",
+                "apiName": "sharepointonline",
+                "isProcessSimpleApiReferenceConversionAlreadyDone": false
+            },
+            "shared_commondataserviceforapps": {
+                "connectionName": "shared-commondataser",
+                "source": "Embedded",
+                "id": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+                "tier": "NotSpecified",
+                "apiName": "commondataserviceforapps",
+                "isProcessSimpleApiReferenceConversionAlreadyDone": false
+            },
+            "shared_excelonlinebusiness-1": {
+                "connectionName": "shared-excelonlinebu",
+                "source": "Embedded",
+                "id": "/providers/Microsoft.PowerApps/apis/shared_excelonlinebusiness",
+                "tier": "NotSpecified",
+                "apiName": "excelonlinebusiness",
+                "isProcessSimpleApiReferenceConversionAlreadyDone": false
+            },
+            "shared_office365users": {
+                "connectionName": "shared-office365user",
+                "source": "Embedded",
+                "id": "/providers/Microsoft.PowerApps/apis/shared_office365users",
+                "tier": "NotSpecified",
+                "apiName": "office365users",
+                "isProcessSimpleApiReferenceConversionAlreadyDone": false
+            }
+        },
+        "flowFailureAlertSubscribed": false,
+        "isManaged": false
+    }
+}
