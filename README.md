@@ -1,4 +1,4 @@
-# Automação de Coleta de E-mails com Power Automate e Graph API
+## Automação de Coleta de E-mails com Power Automate e Graph API
 
 ### Visão Geral
 
